@@ -1,6 +1,58 @@
-import re,shutil,urllib.request
+import re,PyPDF2,shutil,urllib.request,glob,math
 from urllib.request import urlopen
+from nltk.corpus import stopwords
+stopwords = set(stopwords.words('english'))
 
+allwords={}
+tfidflist={}
+words = {}  #if word is in the pdf then increase the value or word
+hasFile = {}
+tfidf = {}
+totalwords=0
+def getallwords(name):
+    global allwords,totalwords
+    try:
+        file = open(name, "rb")
+        pdfReader = PyPDF2.PdfFileReader(file)
+        for i in range(pdfReader.getNumPages()):
+            page = pdfReader.getPage(i).extractText().split()
+            for j in page:
+                temp = re.sub('[-/{}[()˘!@\'#_£$%+|?\]^=™ˆ.,:*"“;><&1234567890]', '', j).lower()
+                #'[-/{}[()!@#£$.,:*"“;><&1234567890]'
+                if temp not in stopwords and len(temp) > 2:
+                    if temp in allwords:
+                        allwords[temp] += 1
+                        totalwords +=1
+                    else:
+                        allwords[temp] = 1
+                        totalwords +=1
+
+    except:
+        pass
+
+    file.close()
+def getidfvalues(name):
+    global  words, hasFile
+    try:
+        file = open(name, "rb")
+        pdfReader = PyPDF2.PdfFileReader(file)
+        for i in range(pdfReader.getNumPages()):
+            page = pdfReader.getPage(i).extractText().split()
+            for j in page:
+                temp = re.sub('[-/{}[()˘!@\'#_£$%+|?\]^=™ˆ.,:*"“;><&1234567890]', '', j).lower()
+                #'[-/{}[()!@#£$.,:*"“;><&1234567890]'
+                if temp not in stopwords and len(temp) > 2:
+                    if temp in hasFile and hasFile[temp] == 0:
+                        words[temp] += 1
+                        hasFile[temp] = 1
+                    elif temp not in hasFile:
+                        words[temp] = 1
+                        hasFile[temp] = 1
+    except:
+        pass
+
+    file.close()
+    hasFile = dict.fromkeys(hasFile, 0)
 html = urlopen("https://muratcanganiz.com/")
 html_doc = html.read()
 link ='https://muratcanganiz.com/'
@@ -20,6 +72,27 @@ for i in range(len(links)): #download part
             shutil.copyfileobj(response, out_file)
     except:
         pass
+fileList = glob.glob('*.pdf')
+stopwords.update([" abstract", "introduction", "conclusions", "related", "work", "author", "university","incjasist"])
+for file in range(len(fileList)):
+    getallwords(fileList[file])
+    getidfvalues(fileList[file])
 
+for item in allwords:
+    tfidflist[item]=(allwords[item]/totalwords)*math.log(len(fileList)/words[item],10)
 
+sortedWords={}
+sortedtfidfs={}
 
+sortedWords = sorted(allwords.items(), key=lambda x: x[1], reverse=True)
+sortedtfidfs =sorted(tfidflist.items(), key=lambda x: x[1], reverse=True)
+
+tfFile = open('tf_list.csv', 'w')
+for i in range(50):
+    tfFile.write(str(sortedWords[i][0]) + '; ' + str(sortedWords[i][1]/totalwords) + '\n')
+tfFile.close()
+
+tfidfFile=open('tf_idf_list.csv','w')
+for i in range(50):
+    tfidfFile.write(str(sortedtfidfs[i][0]) + '; ' + str(sortedtfidfs[i][1]) + '\n' )
+tfidfFile.close()
