@@ -1,6 +1,8 @@
-import re,PyPDF2,shutil,urllib.request,glob,math
+import re,PyPDF2,shutil,urllib.request,glob,math,csv
 from urllib.request import urlopen
 from nltk.corpus import stopwords
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
 stopwords = set(stopwords.words('english'))
 
 allwords={}
@@ -96,3 +98,29 @@ tfidfFile=open('tf_idf_list.csv','w')
 for i in range(50):
     tfidfFile.write(str(sortedtfidfs[i][0]) + '; ' + str(sortedtfidfs[i][1]) + '\n' )
 tfidfFile.close()
+
+tf={}
+tf_idf={}
+
+with open('tf_idf_list.csv', newline='\n') as csvfile:
+    reader = csv.reader(csvfile, delimiter=';')
+    for row in reader:
+        tf_idf[row[0]]=float(row[1])
+csvfile.close()
+
+with open('tf_list.csv', newline='\n') as csvfile:
+    reader = csv.reader(csvfile, delimiter=';')
+    for row in reader:
+        tf[row[0]]=float(row[1])
+csvfile.close()
+
+
+tf_cloud = WordCloud(background_color='White', relative_scaling=0.7,width=1000,height=750).generate_from_frequencies(tf)
+plt.imshow(tf_cloud)
+plt.axis('off')
+plt.savefig('tf_wordCloud.pdf', format='pdf')
+
+tf_cloud = WordCloud(background_color='White', relative_scaling=0.7,width=1000,height=750).generate_from_frequencies(tf_idf)
+plt.imshow(tf_cloud)
+plt.axis('off')
+plt.savefig('tf_idf_wordCloud.pdf', format='pdf')
